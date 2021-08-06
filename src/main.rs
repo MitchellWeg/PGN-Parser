@@ -37,9 +37,15 @@ fn main() {
 
     let out = parser::parse_file(handle);
 
-    let data = serialize_to_format(out);
+    let data = match serialize_to_format(out) {
+        Ok(s) => s,
+        Err(e) => panic!("{}", e)
+    };
 
-    file::write_to_file(output_handle, data);
+    match file::write_to_file(output_handle, data) {
+        Ok(_) => (),
+        Err(e) => panic!("{}", e)
+    }
 }
 
 fn open_file(name: String) -> Result<File, io::Error> {
@@ -53,7 +59,7 @@ fn open_file(name: String) -> Result<File, io::Error> {
     return Ok(handle);
 }
 
-pub fn serialize_to_format(input: Vec<parser::PGN>) -> String {
+pub fn serialize_to_format(input: Vec<parser::PGN>) -> Result<String, csv::Error> {
     let mut writer = Writer::from_writer(vec![]);
 
     for pgn in input {
@@ -71,12 +77,12 @@ pub fn serialize_to_format(input: Vec<parser::PGN>) -> String {
             moves: pgn.moves
         }) {
             Ok(_) => (),
-            Err(e) => panic!(e)
+            Err(e) => return Err(e)
         };
 
     };
 
-    return String::from_utf8(writer.into_inner().unwrap()).unwrap();
+    Ok(String::from_utf8(writer.into_inner().unwrap()).unwrap())
 }
 
 
