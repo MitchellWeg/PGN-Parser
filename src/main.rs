@@ -1,5 +1,3 @@
-use std::env;
-use std::fmt::Error;
 use std::io;
 use std::fs::File;
 use csv::Writer;
@@ -8,25 +6,21 @@ mod parser;
 mod file;
 
 enum Format {
-    csv,
-    json
+    CSV,
+    JSON
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-
-    if args.len() <= 1 {
-        print!("filename was not specified");
-        return; 
-    }
-
-    if args.len() <= 2 {
-        print!("output file was not specified");
-        return; 
-    }
-
-    let input: String = args[1].clone();
-    let output: String = args[2].clone();
+    let input: String = std::env::args().nth(1).expect("filename was not specified");
+    let output: String = std::env::args().nth(2).expect("output file was not specified");
+    let format_type: Format = match std::env::args().nth(3) {
+        Some(e) => match e.as_str() {
+           "CSV" => Format::CSV, 
+           "json" => Format::JSON, 
+           _ => Format::CSV
+        }
+        None => Format::CSV
+    };
 
     let handle = match open_file(input) {
         Ok(h) => h,
@@ -43,7 +37,7 @@ fn main() {
 
     let out = parser::parse_file(handle);
 
-    let data = match serialize_to_format(Format::json, out) {
+    let data = match serialize_to_format(format_type, out) {
         Ok(s) => s,
         Err(e) => panic!("{}", e)
     };
@@ -67,13 +61,13 @@ fn open_file(name: String) -> Result<File, io::Error> {
 
 fn serialize_to_format(format: Format, input: Vec<parser::PGN>) -> Result<String, csv::Error> {
    match format {
-       Format::csv => { 
+       Format::CSV => { 
            match write_as_csv(input){ 
                Ok(s) => return Ok(s),
                Err(e) => return Err(e)
            }
        },
-       Format::json => Ok(write_as_json(input).unwrap())
+       Format::JSON => Ok(write_as_json(input).unwrap())
    }
 }
 
