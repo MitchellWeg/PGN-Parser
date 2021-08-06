@@ -1,10 +1,17 @@
 # PGN Parser
 
-This project can convert PGN files to CSV.
+This project can convert PGN files to CSV or JSON files.
 
 ## Usage
+
+Writing to a csv file:
 ```bash
-cargo run <input_file>.pgn <output_file>.csv
+cargo run <input_file>.pgn <output_file>.csv csv
+```
+
+Writing to a json file:
+```bash
+cargo run <input_file>.pgn <output_file>.json json
 ```
 
 ## Note
