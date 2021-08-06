@@ -107,5 +107,3 @@ fn strip_line(line: String) -> String {
     let s = line.replace(&['[', ']', '"'][..], "");
     return s.to_string();
 }
-
-

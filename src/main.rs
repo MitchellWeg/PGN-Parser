@@ -1,10 +1,16 @@
 use std::env;
+use std::fmt::Error;
 use std::io;
 use std::fs::File;
 use csv::Writer;
 
 mod parser;
 mod file;
+
+enum Format {
+    csv,
+    json
+}
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -37,7 +43,7 @@ fn main() {
 
     let out = parser::parse_file(handle);
 
-    let data = match serialize_to_format(out) {
+    let data = match serialize_to_format(Format::json, out) {
         Ok(s) => s,
         Err(e) => panic!("{}", e)
     };
@@ -59,7 +65,19 @@ fn open_file(name: String) -> Result<File, io::Error> {
     return Ok(handle);
 }
 
-pub fn serialize_to_format(input: Vec<parser::PGN>) -> Result<String, csv::Error> {
+fn serialize_to_format(format: Format, input: Vec<parser::PGN>) -> Result<String, csv::Error> {
+   match format {
+       Format::csv => { 
+           match write_as_csv(input){ 
+               Ok(s) => return Ok(s),
+               Err(e) => return Err(e)
+           }
+       },
+       Format::json => Ok(write_as_json(input).unwrap())
+   }
+}
+
+fn write_as_csv(input: Vec<parser::PGN>) -> Result<String, csv::Error> {
     let mut writer = Writer::from_writer(vec![]);
 
     for pgn in input {
@@ -84,5 +102,15 @@ pub fn serialize_to_format(input: Vec<parser::PGN>) -> Result<String, csv::Error
 
     Ok(String::from_utf8(writer.into_inner().unwrap()).unwrap())
 }
+fn write_as_json(input: Vec<parser::PGN>) -> Result<String, csv::Error> {
+    let mut output: String = String::new();
 
+    for pgn in input {
+        let j = serde_json::to_string(&pgn);
 
+        output.push_str(&j.unwrap());
+        output.push_str(&"\r\n".to_string());
+    }
+
+    return Ok(output);
+}
