@@ -1,6 +1,5 @@
 use std::env;
 use std::io;
-use std::io::prelude::*;
 use std::fs::File;
 use csv::Writer;
 
@@ -37,6 +36,7 @@ fn main() {
     };
 
     let out = parser::parse_file(handle);
+
     let data = serialize_to_format(out);
 
     file::write_to_file(output_handle, data);

@@ -40,30 +40,48 @@ impl Default for PGN {
 
 pub fn parse_file(file: File) -> Vec<PGN> {
     let reader = BufReader::new(file);
-    let lines = reader.lines();
+    let lines: Vec<_> = reader.lines().collect();
+    let line_count = lines.len();
     let mut out: Vec<PGN> = Vec::new();
     let mut pgn = PGN::default();
     let mut whitespace_found: bool = false;
     let mut moves_written: bool = false;
 
-    for line in lines {
+    for (i, line) in lines.into_iter().enumerate() {
         let _line = line.unwrap();
         let stripped = strip_line(_line.clone());
 
+        if moves_written {
+            assert!(_line.clone().is_empty());
+            whitespace_found = false;
+            moves_written = false;
+            out.push(pgn.clone());
+            pgn = PGN::default();
+            continue;
+        }
+
         if whitespace_found {
             pgn.moves = _line.clone();
-            whitespace_found = false;
             moves_written = true;
+
+            if i >= line_count {
+                out.push(pgn.clone());
+            }
+
+            continue;
         }
 
         if _line.clone().is_empty() {
-            whitespace_found = true;
+           whitespace_found = true;
+           continue;
         }
 
-        if !whitespace_found {
+        if !whitespace_found { 
             let split = stripped.split(' ').collect::<Vec<&str>>();
 
-            match split[0] {
+            let target: String = split[0].chars().filter(|c| !c.is_whitespace()).collect();
+
+            match target.as_str() {
                 "Event"=> pgn.event = get_value(split),
                 "Site"=> pgn.site = get_value(split),
                 "Date"=> pgn.date = get_value(split),
@@ -78,13 +96,6 @@ pub fn parse_file(file: File) -> Vec<PGN> {
 
                 _ => ()
             }
-        }
-
-        if whitespace_found && moves_written {
-            out.push(pgn);
-            moves_written = false;
-            whitespace_found = false;
-            pgn = PGN::default();
         }
     }
 
