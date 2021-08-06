@@ -8,7 +8,6 @@ pub struct PGN {
     pub event: String,
     pub site: String,
     pub date: String,
-    pub round: String,
     pub white: String,
     pub black: String,
     pub game_result: String,
@@ -25,7 +24,6 @@ impl Default for PGN {
             event: "".to_string(),
             site: "".to_string(),
             date: "".to_string(),
-            round: "".to_string(),
             white: "".to_string(),
             black: "".to_string(),
             game_result: "".to_string(),
@@ -84,7 +82,7 @@ pub fn parse_file(file: File) -> Vec<PGN> {
             match target.as_str() {
                 "Event"=> pgn.event = get_value(split),
                 "Site"=> pgn.site = get_value(split),
-                "Date"=> pgn.date = get_value(split),
+                "UTCDate"=> pgn.date = get_value(split),
                 "White"=> pgn.white = get_value(split),
                 "Black"=> pgn.black = get_value(split),
                 "Result"=> pgn.game_result = get_value(split),
@@ -92,7 +90,6 @@ pub fn parse_file(file: File) -> Vec<PGN> {
                 "BlackElo"=> pgn.black_elo = get_value(split),
                 "TimeControl"=> pgn.time_control = get_value(split),
                 "Termination"=> pgn.termination = get_value(split) ,
-                "Round"=> pgn.round = get_value(split) ,
 
                 _ => ()
             }

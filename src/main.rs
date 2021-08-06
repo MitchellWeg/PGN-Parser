@@ -61,7 +61,6 @@ pub fn serialize_to_format(input: Vec<parser::PGN>) -> String {
             event: pgn.event,
             site: pgn.site,
             date: pgn.date,
-            round: pgn.round,
             white: pgn.white,
             black: pgn.black,
             game_result: pgn.game_result,
