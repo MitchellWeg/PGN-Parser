@@ -36,9 +36,23 @@ impl Default for PGN {
     }
 }
 
+/*
+ * Parse the file.
+ * Returns: a vector of PGN's.
+ * Note: This should probably be refactored.
+ * This now holds all PGN's in memory, which is not very efficient,
+ * since it effectively doubles in memory.
+ * In the future this should probably just return single PGN's,
+ * which immediately should be written to the file.
+ */
 pub fn parse_file(file: File) -> Vec<PGN> {
     let reader = BufReader::new(file);
-    let lines: Vec<_> = reader.lines().collect();
+    let lines: Vec<_> = reader.lines().into_iter().collect();
+
+    parse_lines(lines)
+}
+
+fn parse_lines(lines: Vec<Result<String, std::io::Error>>) -> Vec<PGN> {
     let line_count = lines.len();
     let mut out: Vec<PGN> = Vec::new();
     let mut pgn = PGN::default();
@@ -96,7 +110,7 @@ pub fn parse_file(file: File) -> Vec<PGN> {
         }
     }
 
-    return out;
+    out
 }
 
 fn get_value(split: Vec<&str>) -> String {
@@ -106,4 +120,41 @@ fn get_value(split: Vec<&str>) -> String {
 fn strip_line(line: String) -> String {
     let s = line.replace(&['[', ']', '"'][..], "");
     return s.to_string();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::File;
+
+    #[test]
+    fn it_strips_correctly() {
+        let target = strip_line("[White \"Fischer, Robert J.\"]".to_string());
+        let right_output = "White Fischer, Robert J.";
+        assert_eq!(target, right_output);
+    }
+
+    #[test]
+    fn it_gets_the_value_correctly() {
+        let target = strip_line("[White \"Fischer, Robert J.\"]".to_string());
+        let right_output = "White Fischer, Robert J.";
+        assert_eq!(target, right_output);
+    }
+
+    #[test]
+    fn it_parse_a_pgn_correctly() {
+        let test_file = format!("{}/test/pgn.pgn", std::env::current_dir().unwrap().to_str().unwrap());
+
+        let handle = match File::open(test_file) {
+            Ok(s) => s,
+            Err(e) => {panic!("{}", e)}
+        };
+
+        let pgns = parse_file(handle);
+
+        assert_eq!(pgns.len(), 1);
+        assert_eq!(pgns[0].white, "Fischer, Robert J. ".to_string());
+        assert_eq!(pgns[0].black, "Spassky, Boris V. ".to_string());
+        assert_eq!(pgns[0].moves, "1.e4 e5 2.Nf3 Nc6 3.Bb5 {Deze opening wordt Spaans genoemd.} a6 4.Ba4 Nf6 5.O-O Be7 6.Re1 b5 7.Bb3 d6 8.c3 O-O 9. h3 Nb8 10.d4 Nbd7 11.c4 c6 12.cxb5 axb5 13.Nc3 Bb7 14.Bg5 b4 15.Nb1 h6 16.Bh4 c5 17.dxe5 Nxe4 18.Bxe7 Qxe7 19.exd6 Qf6 20.Nbd2 Nxd6 21.Nc4 Nxc4 22.Bxc4 Nb6 23.Ne5 Rae8 24.Bxf7+ Rxf7 25.Nxf7 Rxe1+ 26.Qxe1 Kxf7 27.Qe3 Qg5 28.Qxg5 hxg5 29.b3 Ke6 30.a3 Kd6 31.axb4 cxb4 32.Ra5 Nd5 33. f3 Bc8 34.Kf2 Bf5 35.Ra7 g6 36.Ra6+ Kc5 37.Ke1 Nf4 38.g3 Nxh3 39.Kd2 Kb5 40.Rd6 Kc5 41.Ra6 Nf2 42.g4 Bd3 43.Re6 1/2-1/2".to_string());
+    }
 }
