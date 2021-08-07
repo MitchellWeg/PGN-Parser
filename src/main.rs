@@ -103,6 +103,7 @@ fn write_as_json(input: Vec<parser::PGN>) -> Result<String, csv::Error> {
         let j = serde_json::to_string(&pgn);
 
         output.push_str(&j.unwrap());
+        output.push_str(&",".to_string());
         output.push_str(&"\r\n".to_string());
     }
 
