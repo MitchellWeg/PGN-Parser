@@ -1,4 +1,4 @@
-# PGN Parser
+# PGN Parser ![Linux](https://github.com/MitchellWeg/PGN-Parser/actions/workflows/linux.yml/badge.svg) ![MacOS](https://github.com/MitchellWeg/PGN-Parser/actions/workflows/macos.yml/badge.svg)
 
 This project can convert PGN files to CSV or JSON files.
 
