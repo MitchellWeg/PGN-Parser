@@ -91,9 +91,7 @@ fn parse_lines(lines: Vec<Result<String, std::io::Error>>) -> Vec<PGN> {
         if !whitespace_found { 
             let split = stripped.split(' ').collect::<Vec<&str>>();
 
-            let target: String = split[0].chars().filter(|c| !c.is_whitespace()).collect();
-
-            match target.as_str() {
+            match split[0] {
                 "Event"=> pgn.event = get_value(split),
                 "Site"=> pgn.site = get_value(split),
                 "UTCDate"=> pgn.date = get_value(split),
