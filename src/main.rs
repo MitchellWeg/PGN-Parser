@@ -1,6 +1,5 @@
 use std::io;
 use std::fs::File;
-use csv::Writer;
 
 mod parser;
 mod file;
@@ -72,7 +71,7 @@ fn serialize_to_format(format: Format, input: Vec<parser::PGN>) -> Result<String
 }
 
 fn write_as_csv(input: Vec<parser::PGN>) -> Result<String, csv::Error> {
-    let mut writer = Writer::from_writer(vec![]);
+    let mut writer = csv::WriterBuilder::new().delimiter(b'|').from_writer(vec![]);
 
     for pgn in input {
          match writer.serialize(parser::PGN {

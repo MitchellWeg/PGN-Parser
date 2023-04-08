@@ -47,6 +47,7 @@ impl Default for PGN {
  */
 pub fn parse_file(file: File) -> Vec<PGN> {
     let reader = BufReader::new(file);
+
     let lines: Vec<_> = reader.lines().into_iter().collect();
 
     parse_lines(lines)
@@ -111,10 +112,12 @@ fn parse_lines(lines: Vec<Result<String, std::io::Error>>) -> Vec<PGN> {
     out
 }
 
+#[inline(always)]
 fn get_value(split: Vec<&str>) -> String {
     split[1..].join(" ").to_string()
 }
 
+#[inline(always)]
 fn strip_line(line: String) -> String {
     line.replace(&['[', ']', '"'][..], "").to_string()
 }
