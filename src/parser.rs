@@ -49,12 +49,12 @@ impl Default for PGN {
 pub fn parse_file(file: File) -> Vec<PGN> {
     let reader = BufReader::new(file);
 
-    let lines: Vec<_> = reader.lines().into_iter().collect();
+    let lines: Vec<_> = reader.lines().collect::<Result<_, _>>().unwrap();
 
     parse_lines(lines)
 }
 
-fn parse_lines(lines: Vec<Result<String, std::io::Error>>) -> Vec<PGN> {
+fn parse_lines(lines: Vec<String>) -> Vec<PGN> {
     let mut out: Vec<PGN> = Vec::new();
     let mut pgn = PGN::default();
     let mut whitespace_found: bool = false;
@@ -62,13 +62,11 @@ fn parse_lines(lines: Vec<Result<String, std::io::Error>>) -> Vec<PGN> {
 
     let mut deq: VecDeque<String> = VecDeque::new();
 
-    for _line in lines {
+    for line in lines {
         if pgn_written {
             pgn_written = false;
             continue;
         }
-
-        let line = _line.unwrap();
 
         if line.trim().is_empty() {
             whitespace_found = true;
