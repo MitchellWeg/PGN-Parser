@@ -37,15 +37,7 @@ impl Default for PGN {
     }
 }
 
-/*
- * Parse the file.
- * Returns: a vector of PGN's.
- * Note: This should probably be refactored.
- * This now holds all PGN's in memory, which is not very efficient,
- * since it effectively doubles in memory.
- * In the future this should probably just return single PGN's,
- * which immediately should be written to the file.
- */
+/// Parse the file.
 pub fn parse_file(file: File) -> Vec<PGN> {
     let reader = BufReader::new(file);
 
