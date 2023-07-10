@@ -1,27 +1,14 @@
+use csv::WriterBuilder;
 use std::fs::File;
 use std::io;
 
-mod file;
 mod parser;
-
-enum Format {
-    CSV,
-    JSON,
-}
 
 fn main() {
     let input: String = std::env::args().nth(1).expect("filename was not specified");
     let output: String = std::env::args()
         .nth(2)
         .expect("output file was not specified");
-    let format_type: Format = match std::env::args().nth(3) {
-        Some(e) => match e.as_str() {
-            "CSV" => Format::CSV,
-            "json" => Format::JSON,
-            _ => Format::CSV,
-        },
-        None => Format::CSV,
-    };
 
     let handle = match open_file(input) {
         Ok(h) => h,
@@ -31,12 +18,31 @@ fn main() {
         }
     };
 
-    let output_handle = match File::create(output) {
-        Ok(s) => s,
-        Err(e) => panic!("{}", e),
-    };
+    let mut iter = parser::parse_file(handle);
 
-    let iter = parser::parse_file(handle);
+    write_to_csv(&mut iter, &output);
+}
+
+fn write_to_csv(iter: &mut parser::PGNIterator, output_file: &str) {
+    let mut writer = WriterBuilder::new()
+        .has_headers(true)
+        .from_path(output_file)
+        .unwrap();
+
+    let headers = ["white", "black", "game_result", "moves"];
+
+    match writer.write_record(&headers) {
+        Ok(_) => (),
+        Err(e) => panic!("{}", e),
+    }
+
+    while let Some(pgn) = iter.next() {
+        let data = [pgn.white, pgn.black, pgn.game_result, pgn.moves];
+        match writer.write_record(&data) {
+            Ok(_) => (),
+            Err(e) => panic!("{}", e),
+        }
+    }
 }
 
 fn open_file(name: String) -> Result<File, io::Error> {
@@ -48,52 +54,4 @@ fn open_file(name: String) -> Result<File, io::Error> {
     };
 
     return Ok(handle);
-}
-
-fn serialize_to_format(format: Format, input: Vec<parser::PGN>) -> Result<String, csv::Error> {
-    match format {
-        Format::CSV => match write_as_csv(input) {
-            Ok(s) => return Ok(s),
-            Err(e) => return Err(e),
-        },
-        Format::JSON => Ok(write_as_json(input).unwrap()),
-    }
-}
-
-fn write_as_csv(input: Vec<parser::PGN>) -> Result<String, csv::Error> {
-    let mut writer = csv::WriterBuilder::new()
-        .delimiter(b'|')
-        .from_writer(vec![]);
-
-    for pgn in input {
-        match writer.serialize(parser::PGN {
-            date: pgn.date,
-            white: pgn.white,
-            black: pgn.black,
-            game_result: pgn.game_result,
-            white_elo: pgn.white_elo,
-            black_elo: pgn.black_elo,
-            time_control: pgn.time_control,
-            termination: pgn.termination,
-            moves: pgn.moves,
-        }) {
-            Ok(_) => (),
-            Err(e) => return Err(e),
-        };
-    }
-
-    Ok(String::from_utf8(writer.into_inner().unwrap()).unwrap())
-}
-fn write_as_json(input: Vec<parser::PGN>) -> Result<String, csv::Error> {
-    let mut output: String = String::new();
-
-    for pgn in input {
-        let j = serde_json::to_string(&pgn);
-
-        output.push_str(&j.unwrap());
-        output.push_str(&",".to_string());
-        output.push_str(&"\r\n".to_string());
-    }
-
-    return Ok(output);
 }

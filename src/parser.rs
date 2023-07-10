@@ -35,8 +35,6 @@ impl Default for PGN {
 }
 
 pub struct PGNIterator {
-    curr: PGN,
-    next: Option<PGN>,
     offset: Option<u64>,
     reader: BufReader<File>,
 }
@@ -46,8 +44,6 @@ impl PGNIterator {
         let reader = BufReader::new(file);
 
         PGNIterator {
-            curr: PGN::default(),
-            next: None,
             offset: None,
             reader,
         }
