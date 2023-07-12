@@ -37,7 +37,13 @@ fn write_to_csv(iter: &mut parser::PGNIterator, output_file: &str) {
     }
 
     while let Some(pgn) = iter.next() {
-        let data = [pgn.white, pgn.black, pgn.game_result, pgn.moves];
+        let data = [
+            &pgn.data["White"],
+            &pgn.data["Black"],
+            &pgn.data["Result"],
+            &pgn.data["Moves"],
+        ];
+
         match writer.write_record(&data) {
             Ok(_) => (),
             Err(e) => panic!("{}", e),
