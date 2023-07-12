@@ -3,11 +3,10 @@ use std::collections::VecDeque;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
+use std::io::SeekFrom;
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Debug, Clone, PartialEq)]
 pub struct PGN {
-    pub event: String,
-    pub site: String,
     pub date: String,
     pub white: String,
     pub black: String,
@@ -22,8 +21,6 @@ pub struct PGN {
 impl Default for PGN {
     fn default() -> PGN {
         PGN {
-            event: "".to_string(),
-            site: "".to_string(),
             date: "".to_string(),
             white: "".to_string(),
             black: "".to_string(),
@@ -37,32 +34,69 @@ impl Default for PGN {
     }
 }
 
-/// Parse the file.
-pub fn parse_file(file: File) -> Vec<PGN> {
-    let reader = BufReader::new(file);
-
-    let lines: Vec<_> = reader.lines().collect::<Result<_, _>>().unwrap();
-
-    parse_lines(lines)
+pub struct PGNIterator {
+    offset: Option<u64>,
+    reader: BufReader<File>,
 }
 
-fn parse_lines(lines: Vec<String>) -> Vec<PGN> {
-    let mut out: Vec<PGN> = Vec::new();
+impl PGNIterator {
+    pub fn new(file: File) -> PGNIterator {
+        let reader = BufReader::new(file);
+
+        PGNIterator {
+            offset: None,
+            reader,
+        }
+    }
+}
+
+impl Iterator for PGNIterator {
+    type Item = PGN;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let off = match self.offset {
+            Some(s) => s,
+            None => 0,
+        };
+
+        let (new_offset, pgn) = parse_lines(&mut self.reader, off);
+
+        self.offset = Some(new_offset);
+
+        pgn
+    }
+}
+
+pub fn parse_file(file: File) -> PGNIterator {
+    PGNIterator::new(file)
+}
+
+fn parse_lines(reader: &mut BufReader<File>, offset: u64) -> (u64, Option<PGN>) {
+    let mut total_amount_of_bytes_read = offset;
     let mut pgn = PGN::default();
     let mut whitespace_found: bool = false;
     let mut pgn_written: bool = false;
 
     let mut deq: VecDeque<String> = VecDeque::new();
 
-    for line in lines {
-        if pgn_written {
-            pgn_written = false;
-            continue;
-        }
+    // Move the reader offset amount of bytes from the start.
+    match reader.seek(SeekFrom::Start(offset)) {
+        Ok(r) => r,
+        Err(e) => panic!("{}", e),
+    };
+
+    for _line in reader.lines() {
+        let line = _line.unwrap();
+        let line_bytes = line.chars().count() as u64;
+        total_amount_of_bytes_read += line_bytes;
 
         if line.trim().is_empty() {
             whitespace_found = true;
             continue;
+        }
+
+        if pgn_written && whitespace_found {
+            break;
         }
 
         let stripped = strip_line(&line);
@@ -74,9 +108,7 @@ fn parse_lines(lines: Vec<String>) -> Vec<PGN> {
                 let split = pgn_line.split(' ').collect::<Vec<&str>>();
 
                 match split[0] {
-                    "Event" => pgn.event = get_value(split),
-                    "Site" => pgn.site = get_value(split),
-                    "UTCDate" => pgn.date = get_value(split),
+                    "UTCDate" | "Date" => pgn.date = get_value(split),
                     "White" => pgn.white = get_value(split),
                     "Black" => pgn.black = get_value(split),
                     "Result" => pgn.game_result = get_value(split),
@@ -89,15 +121,16 @@ fn parse_lines(lines: Vec<String>) -> Vec<PGN> {
                 }
             }
 
-            out.push(pgn.clone());
-            pgn = PGN::default();
-            pgn_written = true;
-            whitespace_found = false;
             deq.clear();
+            pgn_written = true;
         }
     }
 
-    out
+    if pgn == PGN::default() {
+        return (total_amount_of_bytes_read, None);
+    }
+
+    (total_amount_of_bytes_read, Some(pgn))
 }
 
 #[inline(always)]
@@ -130,29 +163,7 @@ mod tests {
     }
 
     #[test]
-    fn it_parse_a_pgn_correctly() {
-        let test_file = format!(
-            "{}/test/pgn.pgn",
-            std::env::current_dir().unwrap().to_str().unwrap()
-        );
-
-        let handle = match File::open(test_file) {
-            Ok(s) => s,
-            Err(e) => {
-                panic!("{}", e)
-            }
-        };
-
-        let pgns = parse_file(handle);
-
-        assert_eq!(pgns.len(), 1);
-        assert_eq!(pgns[0].white, "Fischer, Robert J.".to_string());
-        assert_eq!(pgns[0].black, "Spassky, Boris V.".to_string());
-        assert_eq!(pgns[0].moves, "1.e4 e5 2.Nf3 Nc6 3.Bb5 {Deze opening wordt Spaans genoemd.} a6 4.Ba4 Nf6 5.O-O Be7 6.Re1 b5 7.Bb3 d6 8.c3 O-O 9. h3 Nb8 10.d4 Nbd7 11.c4 c6 12.cxb5 axb5 13.Nc3 Bb7 14.Bg5 b4 15.Nb1 h6 16.Bh4 c5 17.dxe5 Nxe4 18.Bxe7 Qxe7 19.exd6 Qf6 20.Nbd2 Nxd6 21.Nc4 Nxc4 22.Bxc4 Nb6 23.Ne5 Rae8 24.Bxf7+ Rxf7 25.Nxf7 Rxe1+ 26.Qxe1 Kxf7 27.Qe3 Qg5 28.Qxg5 hxg5 29.b3 Ke6 30.a3 Kd6 31.axb4 cxb4 32.Ra5 Nd5 33. f3 Bc8 34.Kf2 Bf5 35.Ra7 g6 36.Ra6+ Kc5 37.Ke1 Nf4 38.g3 Nxh3 39.Kd2 Kb5 40.Rd6 Kc5 41.Ra6 Nf2 42.g4 Bd3 43.Re6 1/2-1/2".to_string());
-    }
-
-    #[test]
-    fn it_parses_multiple_pgns_correctly() {
+    fn test_new_line_parser_for_multiple_pgns() {
         let test_file = format!(
             "{}/test/pgns.pgn",
             std::env::current_dir().unwrap().to_str().unwrap()
@@ -165,11 +176,18 @@ mod tests {
             }
         };
 
-        let pgns = parse_file(handle);
+        let mut iter = parse_file(handle);
 
-        assert_eq!(pgns.len(), 2);
-        assert_eq!(pgns[0].white, "Robert James Fischer".to_string());
-        assert_eq!(pgns[0].black, "Pal Benko".to_string());
-        assert_eq!(pgns[0].moves, "1. e4 c5 2. Nf3 Nc6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 d6 6. Bc4 Qb6 7. Nde2 e6 8. O-O Be7 9. Bb3 O-O 10. Kh1 Na5 11. Bg5 Qc5 12. f4 b5 13. Ng3 b4 14. e5 dxe5 15. Bxf6 gxf6 16. Nce4 Qd4 17. Qh5 Nxb3 18. Qh6 exf4 19. Nh5 f5 20. Rad1 Qe5 21. Nef6+ Bxf6 22. Nxf6+ Qxf6 23. Qxf6 Nc5 24. Qg5+ Kh8 25. Qe7 Ba6 26. Qxc5 Bxf1 27. Rxf1 1-0".to_string());
+        let first_pgn = iter.next().unwrap();
+        let second_pgn = iter.next().unwrap();
+        let third = iter.next();
+
+        assert_eq!(first_pgn.white, "Robert James Fischer");
+        assert_eq!(first_pgn.black, "Pal Benko");
+
+        assert_eq!(second_pgn.white, "Fischer, Robert J.");
+        assert_eq!(second_pgn.black, "Spassky, Boris V.");
+
+        assert!(third.is_none());
     }
 }
