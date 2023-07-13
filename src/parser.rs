@@ -19,19 +19,18 @@ impl Default for PGN {
     }
 }
 
+// TODO: This needs to be rewritten to support
+// an start and an end arg.
 pub struct PGNIterator {
-    offset: Option<u64>,
+    offset: u64,
     reader: BufReader<File>,
 }
 
 impl PGNIterator {
-    pub fn new(file: File) -> PGNIterator {
+    pub fn new(file: File, offset: u64) -> PGNIterator {
         let reader = BufReader::new(file);
 
-        PGNIterator {
-            offset: None,
-            reader,
-        }
+        PGNIterator { offset, reader }
     }
 }
 
@@ -39,21 +38,27 @@ impl Iterator for PGNIterator {
     type Item = PGN;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let off = match self.offset {
-            Some(s) => s,
-            None => 0,
-        };
+        let (new_offset, pgn) = parse_lines(&mut self.reader, self.offset);
 
-        let (new_offset, pgn) = parse_lines(&mut self.reader, off);
-
-        self.offset = Some(new_offset);
+        self.offset = new_offset;
 
         pgn
     }
 }
 
-pub fn parse_file(file: File) -> PGNIterator {
-    PGNIterator::new(file)
+///
+/// Parses the file, and returns an iterator.
+/// The function takes an thread_count arg,
+/// which can be used to create multiple PGNIterator's,
+/// to divide up the work.
+pub fn parse_file(file: File, thread_count: i8) -> PGNIterator {
+    let total_bytes = file.metadata().unwrap().len();
+    // TODO: this loses some precision?
+    let divide = total_bytes / (thread_count as u64);
+    dbg!(total_bytes);
+    dbg!(divide);
+
+    PGNIterator::new(file, 0)
 }
 
 fn parse_lines(reader: &mut BufReader<File>, offset: u64) -> (u64, Option<PGN>) {
@@ -155,10 +160,12 @@ mod tests {
             }
         };
 
-        let mut iter = parse_file(handle);
+        let mut iter = parse_file(handle, 1);
 
         let first_pgn = iter.next().unwrap();
         let second_pgn = iter.next().unwrap();
+
+        // This one should be empty.
         let third = iter.next();
 
         assert_eq!(first_pgn.data["White"], "Robert James Fischer");

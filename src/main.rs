@@ -10,6 +10,16 @@ fn main() {
         .nth(2)
         .expect("output file was not specified");
 
+    // To try and improve performance,
+    // lets divide up the work between multiple threads.
+    let thread_count: i8 = match std::env::args().nth(3) {
+        Some(i) => match i.parse() {
+            Ok(s) => s,
+            Err(_) => panic!("Illegal thread count arg"),
+        },
+        None => 1,
+    };
+
     let handle = match open_file(input) {
         Ok(h) => h,
         Err(e) => {
@@ -18,7 +28,7 @@ fn main() {
         }
     };
 
-    let mut iter = parser::parse_file(handle);
+    let mut iter = parser::parse_file(handle, thread_count);
 
     write_to_csv(&mut iter, &output);
 }
