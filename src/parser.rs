@@ -1,4 +1,5 @@
 use serde::Serialize;
+use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::fs::File;
 use std::io::prelude::*;
@@ -7,29 +8,13 @@ use std::io::SeekFrom;
 
 #[derive(Serialize, Debug, Clone, PartialEq)]
 pub struct PGN {
-    pub date: String,
-    pub white: String,
-    pub black: String,
-    pub game_result: String,
-    pub white_elo: String,
-    pub black_elo: String,
-    pub time_control: String,
-    pub termination: String,
-    pub moves: String,
+    pub data: HashMap<String, String>,
 }
 
 impl Default for PGN {
     fn default() -> PGN {
         PGN {
-            date: "".to_string(),
-            white: "".to_string(),
-            black: "".to_string(),
-            game_result: "".to_string(),
-            white_elo: "".to_string(),
-            black_elo: "".to_string(),
-            time_control: "".to_string(),
-            termination: "".to_string(),
-            moves: "".to_string(),
+            data: HashMap::new(),
         }
     }
 }
@@ -72,6 +57,7 @@ pub fn parse_file(file: File) -> PGNIterator {
 }
 
 fn parse_lines(reader: &mut BufReader<File>, offset: u64) -> (u64, Option<PGN>) {
+    let mut hashmap: HashMap<String, String> = HashMap::new();
     let mut total_amount_of_bytes_read = offset;
     let mut pgn = PGN::default();
     let mut whitespace_found: bool = false;
@@ -107,18 +93,12 @@ fn parse_lines(reader: &mut BufReader<File>, offset: u64) -> (u64, Option<PGN>) 
             for pgn_line in deq.iter() {
                 let split = pgn_line.split(' ').collect::<Vec<&str>>();
 
-                match split[0] {
-                    "UTCDate" | "Date" => pgn.date = get_value(split),
-                    "White" => pgn.white = get_value(split),
-                    "Black" => pgn.black = get_value(split),
-                    "Result" => pgn.game_result = get_value(split),
-                    "WhiteElo" => pgn.white_elo = get_value(split),
-                    "BlackElo" => pgn.black_elo = get_value(split),
-                    "TimeControl" => pgn.time_control = get_value(split),
-                    "Termination" => pgn.termination = get_value(split),
-
-                    _ => pgn.moves = split.join(" "),
+                if pgn_line.starts_with("1.") {
+                    hashmap.insert("Moves".into(), get_value(split));
+                    continue;
                 }
+
+                hashmap.insert(split[0].into(), get_value(split));
             }
 
             deq.clear();
@@ -126,10 +106,11 @@ fn parse_lines(reader: &mut BufReader<File>, offset: u64) -> (u64, Option<PGN>) 
         }
     }
 
-    if pgn == PGN::default() {
+    if hashmap.is_empty() {
         return (total_amount_of_bytes_read, None);
     }
 
+    pgn.data = hashmap;
     (total_amount_of_bytes_read, Some(pgn))
 }
 
@@ -182,11 +163,11 @@ mod tests {
         let second_pgn = iter.next().unwrap();
         let third = iter.next();
 
-        assert_eq!(first_pgn.white, "Robert James Fischer");
-        assert_eq!(first_pgn.black, "Pal Benko");
+        assert_eq!(first_pgn.data["White"], "Robert James Fischer");
+        assert_eq!(first_pgn.data["Black"], "Pal Benko");
 
-        assert_eq!(second_pgn.white, "Fischer, Robert J.");
-        assert_eq!(second_pgn.black, "Spassky, Boris V.");
+        assert_eq!(second_pgn.data["White"], "Fischer, Robert J.");
+        assert_eq!(second_pgn.data["Black"], "Spassky, Boris V.");
 
         assert!(third.is_none());
     }
