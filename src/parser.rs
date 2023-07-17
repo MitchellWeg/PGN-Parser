@@ -1,75 +1,17 @@
-use serde::Serialize;
 use std::collections::VecDeque;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::io::SeekFrom;
 
-#[derive(Serialize, Debug, Clone, PartialEq)]
-pub struct PGN {
-    pub date: String,
-    pub white: String,
-    pub black: String,
-    pub game_result: String,
-    pub white_elo: String,
-    pub black_elo: String,
-    pub time_control: String,
-    pub termination: String,
-    pub moves: String,
-}
-
-impl Default for PGN {
-    fn default() -> PGN {
-        PGN {
-            date: "".to_string(),
-            white: "".to_string(),
-            black: "".to_string(),
-            game_result: "".to_string(),
-            white_elo: "".to_string(),
-            black_elo: "".to_string(),
-            time_control: "".to_string(),
-            termination: "".to_string(),
-            moves: "".to_string(),
-        }
-    }
-}
-
-pub struct PGNIterator {
-    pub total_size: u64,
-    pub offset: u64,
-    reader: BufReader<File>,
-}
-
-impl PGNIterator {
-    pub fn new(file: File) -> PGNIterator {
-        let total_size = file.metadata().unwrap().len();
-        let reader = BufReader::new(file);
-
-        PGNIterator {
-            reader,
-            total_size,
-            offset: 0,
-        }
-    }
-}
-
-impl Iterator for PGNIterator {
-    type Item = PGN;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let (new_offset, pgn) = parse_lines(&mut self.reader, self.offset);
-
-        self.offset = new_offset;
-
-        pgn
-    }
-}
+use crate::pgn::PGN;
+use crate::pgn_iterator::PGNIterator;
 
 pub fn parse_file(file: File) -> PGNIterator {
     PGNIterator::new(file)
 }
 
-fn parse_lines(reader: &mut BufReader<File>, offset: u64) -> (u64, Option<PGN>) {
+pub fn parse_lines(reader: &mut BufReader<File>, offset: u64) -> (u64, Option<PGN>) {
     let mut total_amount_of_bytes_read = offset;
     let mut pgn = PGN::default();
     let mut whitespace_found: bool = false;

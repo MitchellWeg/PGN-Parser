@@ -3,6 +3,8 @@ use std::fs::File;
 use std::io;
 
 mod parser;
+mod pgn;
+mod pgn_iterator;
 mod progressbar;
 
 use progressbar::CustomProgressBar;
@@ -26,7 +28,7 @@ fn main() {
     write_to_csv(&mut iter, &output);
 }
 
-fn write_to_csv(iter: &mut parser::PGNIterator, output_file: &str) {
+fn write_to_csv(iter: &mut pgn_iterator::PGNIterator, output_file: &str) {
     let mut writer = WriterBuilder::new()
         .has_headers(true)
         .from_path(output_file)
