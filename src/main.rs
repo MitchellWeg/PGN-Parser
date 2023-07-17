@@ -41,16 +41,11 @@ fn write_to_csv(iter: &mut parser::PGNIterator, output_file: &str) {
     }
 
     while let Some(pgn) = iter.next() {
-        let current_offset = match iter.offset {
-            Some(o) => o,
-            None => 0,
-        };
-
-        let new = min(current_offset, iter.total_size);
+        let new = min(iter.offset, iter.total_size);
         pb.set_position(new);
 
-        // println!("Reading {} bytes of {}", current_offset, iter.total_size);
         let data = [pgn.white, pgn.black, pgn.game_result, pgn.moves];
+
         match writer.write_record(&data) {
             Ok(_) => (),
             Err(e) => panic!("{}", e),

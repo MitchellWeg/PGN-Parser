@@ -36,7 +36,7 @@ impl Default for PGN {
 
 pub struct PGNIterator {
     pub total_size: u64,
-    pub offset: Option<u64>,
+    pub offset: u64,
     reader: BufReader<File>,
 }
 
@@ -48,7 +48,7 @@ impl PGNIterator {
         PGNIterator {
             reader,
             total_size,
-            offset: None,
+            offset: 0,
         }
     }
 }
@@ -57,14 +57,9 @@ impl Iterator for PGNIterator {
     type Item = PGN;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let off = match self.offset {
-            Some(s) => s,
-            None => 0,
-        };
+        let (new_offset, pgn) = parse_lines(&mut self.reader, self.offset);
 
-        let (new_offset, pgn) = parse_lines(&mut self.reader, off);
-
-        self.offset = Some(new_offset);
+        self.offset = new_offset;
 
         pgn
     }
