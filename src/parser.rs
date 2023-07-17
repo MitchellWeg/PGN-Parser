@@ -35,9 +35,9 @@ impl Default for PGN {
 }
 
 pub struct PGNIterator {
+    pub total_size: u64,
+    pub offset: Option<u64>,
     reader: BufReader<File>,
-    total_size: u64,
-    offset: Option<u64>,
 }
 
 impl PGNIterator {
