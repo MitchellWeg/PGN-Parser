@@ -35,17 +35,20 @@ impl Default for PGN {
 }
 
 pub struct PGNIterator {
-    offset: Option<u64>,
+    pub total_size: u64,
+    pub offset: Option<u64>,
     reader: BufReader<File>,
 }
 
 impl PGNIterator {
     pub fn new(file: File) -> PGNIterator {
+        let total_size = file.metadata().unwrap().len();
         let reader = BufReader::new(file);
 
         PGNIterator {
-            offset: None,
             reader,
+            total_size,
+            offset: None,
         }
     }
 }
