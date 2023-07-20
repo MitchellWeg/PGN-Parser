@@ -11,8 +11,12 @@ pub fn parse_file(file: File) -> PGNIterator {
     PGNIterator::new(file)
 }
 
-pub fn parse_lines(reader: &mut BufReader<File>, offset: u64) -> (u64, Option<PGN>) {
-    let mut total_amount_of_bytes_read = offset;
+pub fn parse_lines(
+    reader: &mut BufReader<File>,
+    min_offset: u64,
+    max_offset: u64,
+) -> (u64, Option<PGN>) {
+    let mut total_amount_of_bytes_read = min_offset;
     let mut pgn = PGN::default();
     let mut whitespace_found: bool = false;
     let mut pgn_written: bool = false;
@@ -20,12 +24,16 @@ pub fn parse_lines(reader: &mut BufReader<File>, offset: u64) -> (u64, Option<PG
     let mut deq: VecDeque<String> = VecDeque::new();
 
     // Move the reader offset amount of bytes from the start.
-    match reader.seek(SeekFrom::Start(offset)) {
+    match reader.seek(SeekFrom::Start(min_offset)) {
         Ok(r) => r,
         Err(e) => panic!("{}", e),
     };
 
     for _line in reader.lines() {
+        if total_amount_of_bytes_read >= max_offset {
+            break;
+        }
+
         let line = _line.unwrap();
         let line_bytes = line.chars().count() as u64;
         total_amount_of_bytes_read += line_bytes;

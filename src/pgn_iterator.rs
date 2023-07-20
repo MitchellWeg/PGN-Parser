@@ -6,7 +6,8 @@ use crate::pgn::PGN;
 
 pub struct PGNIterator {
     pub total_size: u64,
-    pub offset: u64,
+    pub min_offset: u64,
+    pub max_offset: u64,
     pub reader: BufReader<File>,
 }
 
@@ -18,7 +19,8 @@ impl PGNIterator {
         PGNIterator {
             reader,
             total_size,
-            offset: 0,
+            min_offset: 0,
+            max_offset: total_size,
         }
     }
 }
@@ -27,9 +29,9 @@ impl Iterator for PGNIterator {
     type Item = PGN;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let (new_offset, pgn) = parse_lines(&mut self.reader, self.offset);
+        let (new_offset, pgn) = parse_lines(&mut self.reader, self.min_offset, self.max_offset);
 
-        self.offset = new_offset;
+        self.min_offset = new_offset;
 
         pgn
     }

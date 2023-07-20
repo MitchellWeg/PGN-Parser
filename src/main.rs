@@ -45,7 +45,7 @@ fn write_to_csv(iter: &mut pgn_iterator::PGNIterator, output_file: &str) {
     while let Some(pgn) = iter.next() {
         let data = [pgn.white, pgn.black, pgn.game_result, pgn.moves];
 
-        pb.update(iter.offset);
+        pb.update(iter.min_offset);
 
         match writer.write_record(&data) {
             Ok(_) => (),
