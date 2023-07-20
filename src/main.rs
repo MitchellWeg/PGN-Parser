@@ -4,6 +4,7 @@ use std::io;
 
 mod parser;
 mod pgn;
+mod pgn_handler;
 mod pgn_iterator;
 mod progressbar;
 
@@ -23,19 +24,26 @@ fn main() {
         }
     };
 
-    let mut iter = parser::parse_file(handle);
+    let thread_count: i8 = 2;
+
+    let mut iter = parser::parse_file(handle, thread_count);
 
     write_to_csv(&mut iter, &output);
 }
 
-fn write_to_csv(iter: &mut pgn_iterator::PGNIterator, output_file: &str) {
+fn write_to_csv(pgn_handler: &mut pgn_handler::PGNHandler, output_file: &str) {
     let mut writer = WriterBuilder::new()
         .has_headers(true)
         .from_path(output_file)
         .unwrap();
 
+    let mut iter: pgn_iterator::PGNIterator = pgn_handler.chunks.pop().unwrap();
+
     let headers = ["white", "black", "game_result", "moves"];
-    let pb = CustomProgressBar::new(iter.total_size);
+
+    // TODO: each thread will probably get it's own progress bar,
+    // so this will probably change to max_offset
+    let pb = CustomProgressBar::new(pgn_handler.total_size);
 
     match writer.write_record(&headers) {
         Ok(_) => (),

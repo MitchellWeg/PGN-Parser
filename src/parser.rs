@@ -5,10 +5,11 @@ use std::io::BufReader;
 use std::io::SeekFrom;
 
 use crate::pgn::PGN;
+use crate::pgn_handler::PGNHandler;
 use crate::pgn_iterator::PGNIterator;
 
-pub fn parse_file(file: File) -> PGNIterator {
-    PGNIterator::new(file)
+pub fn parse_file(file: File, thread_count: i8) -> PGNHandler {
+    PGNHandler::new(file, thread_count)
 }
 
 pub fn parse_lines(
@@ -124,7 +125,8 @@ mod tests {
             }
         };
 
-        let mut iter = parse_file(handle);
+        let mut pgn_handler = parse_file(handle, 1);
+        let mut iter = pgn_handler.chunks.pop().unwrap();
 
         let first_pgn = iter.next().unwrap();
         let second_pgn = iter.next().unwrap();

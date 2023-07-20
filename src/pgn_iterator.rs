@@ -5,22 +5,19 @@ use crate::parser::parse_lines;
 use crate::pgn::PGN;
 
 pub struct PGNIterator {
-    pub total_size: u64,
     pub min_offset: u64,
     pub max_offset: u64,
     pub reader: BufReader<File>,
 }
 
 impl PGNIterator {
-    pub fn new(file: File) -> PGNIterator {
-        let total_size = file.metadata().unwrap().len();
+    pub fn new(file: File, min_offset: u64, max_offset: u64) -> PGNIterator {
         let reader = BufReader::new(file);
 
         PGNIterator {
             reader,
-            total_size,
-            min_offset: 0,
-            max_offset: total_size,
+            min_offset,
+            max_offset,
         }
     }
 }
