@@ -1,4 +1,5 @@
-use csv::WriterBuilder;
+use csv::{Writer, WriterBuilder};
+use pgn_iterator::PGNIterator;
 use std::fs::File;
 use std::io;
 
@@ -16,6 +17,10 @@ fn main() {
         .nth(2)
         .expect("output file was not specified");
 
+    let tc: String = std::env::args()
+        .nth(3)
+        .expect("thread count was not specified");
+
     let handle = match open_file(input) {
         Ok(h) => h,
         Err(e) => {
@@ -24,7 +29,10 @@ fn main() {
         }
     };
 
-    let thread_count: i8 = 2;
+    let thread_count: i8 = match tc.parse() {
+        Ok(t) => t,
+        Err(e) => panic!("{}", e),
+    };
 
     let mut iter = parser::parse_file(handle, thread_count);
 
@@ -39,11 +47,15 @@ fn write_to_csv(pgn_handler: &mut pgn_handler::PGNHandler, output_file: &str) {
 
     let mut iter: pgn_iterator::PGNIterator = pgn_handler.chunks.pop().unwrap();
 
+    handle_pgn(&mut iter, &mut writer);
+}
+
+fn handle_pgn(iter: &mut PGNIterator, writer: &mut Writer<File>) {
     let headers = ["white", "black", "game_result", "moves"];
 
     // TODO: each thread will probably get it's own progress bar,
     // so this will probably change to max_offset
-    let pb = CustomProgressBar::new(pgn_handler.total_size);
+    let pb = CustomProgressBar::new(iter.max_offset);
 
     match writer.write_record(&headers) {
         Ok(_) => (),
